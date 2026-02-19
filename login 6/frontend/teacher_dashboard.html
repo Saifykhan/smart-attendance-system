@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Teacher Dashboard</title>
+<link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+  body {font-family: 'Inter', Arial, sans-serif; background: #151617; margin: 0; color: #282b2f;}
+  #menuToggle {position: fixed; top: 15px; left: 15px; font-size: 24px; cursor: pointer; z-index: 1100; color: #5284ff;}
+  .sidebar {position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: #fff; border-right: 1px solid #e0e3eb; padding: 30px 0; z-index: 100; transition: transform 0.3s ease;}
+  .sidebar.hide { transform: translateX(-100%);}
+  .sidebar-header {text-align: center; margin-bottom: 40px; font-size: 22px; font-weight: 700; color: #5284ff; letter-spacing: 1px; display: flex; justify-content: center; align-items: center; gap: 8px;}
+  .teacher-icon {font-size: 24px; color: #5284ff; background: #e8f0fe; border-radius: 50%; padding: 7px; box-shadow: 0 2px 6px rgba(82,132,255,0.1);}
+  .sidebar ul { list-style: none; padding: 0; margin: 0;}
+  .sidebar li {margin: 25px 0; font-size: 16px; padding: 10px 30px 10px 24px; display: flex; align-items: center; cursor: pointer; border-radius: 7px 0 0 7px; transition: background 0.2s;}
+  .sidebar li span {margin-right: 14px; font-size: 20px;}
+  .sidebar li.active, .sidebar li:hover { background: #f0f4ff; color: #5284ff;}
+  .main {margin-left: 230px; padding: 36px; transition: margin-left 0.3s ease;}
+  .main.full { margin-left: 0;}
+  .card-row {display: flex; gap: 28px; margin-bottom: 28px;}
+  .card {background: #fff; border-radius: 22px; padding: 28px 24px; flex: 1; box-shadow: 0 4px 18px rgba(48,68,128,0.06);}
+  .card h2 {margin: 0 0 19px 0; font-size: 32px; font-weight: 700;}
+  .class-list ul { padding: 0; list-style: none;}
+  .class-list li {display: flex; align-items: center; margin: 25px 0; font-size: 26px;}
+  .avatar {width: 55px; height: 55px; border-radius: 50%; background-size: cover; background-position: center; margin-right: 18px;}
+  .percent { margin-left: auto; font-weight: 600; font-size:28px;}
+  .attendance {min-width: 440px;}
+  .avg-score .score-bars {display: flex; gap: 40px;}
+  .avg-score .score-bars div {display: flex; flex-direction: column; align-items: center; font-size: 19px; font-weight: 500;}
+  .bar { display: block; width: 6px; border-radius: 3px; margin: 4px 0; font-size: 12px; text-align: right; color: #fff;}
+  .negative { background: #f44e70;}
+  .positive { background: #5284ff;}
+  .most-changed ul { padding: 0; list-style: none;}
+  .most-changed li {font-size: 19px; margin: 13px 0; display: flex; align-items: center;}
+  .most-changed .down { color: #f44e70; margin-left: auto; font-weight: 600;}
+  .most-changed .up { color: #5284ff; margin-left: auto; font-weight: 600;}
+  #cameraContainer { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; flex-direction: column;}
+  #cameraOverlay {position: relative; width: 90vw; max-width: 800px;}
+  #video { width: 100%; border-radius: 12px; outline: none;background:#111;}
+  #controls {margin-top: 10px; display: flex; justify-content: space-between; color: #fff;}
+  button {background: #5284ff; border: none; outline: none; color: white; padding: 10px 20px; font-size: 18px; border-radius: 8px; cursor: pointer;}
+  /* Student modal (fullscreen) styles */
+  #studentOverlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85); z-index: 2100; justify-content: center; align-items: center; flex-direction: column;
+  }
+  #studentModal {
+    width: 90vw; max-width: 900px; background: #fff; border-radius: 18px; padding: 30px 20px; max-height: 90vh; overflow: auto;
+  }
+  #studentModal h2 {text-align:center;}
+  #studentTable { width: 100%; border-collapse: collapse; }
+  #studentTable th, #studentTable td {
+    padding: 8px 12px; text-align: left; font-size: 18px; border-bottom: 1px solid #eee;
+  }
+  #studentTable th { background: #f5f8fd;}
+  #closeStudentBtn { float:right; margin-top:0; margin-bottom:16px;}
+  .student-photo { width: 38px; height:38px; border-radius: 50%; object-fit: cover;}
+  .attend-radio { font-size: 16px; margin-left: 14px; }
+</style>
+</head>
+<body>
+<i id="menuToggle" class="fa-solid fa-bars"></i>
+<div class="sidebar">
+  <div class="sidebar-header">
+    <span class="teacher-icon"><i class="fa-solid fa-chalkboard-user"></i></span>
+    Teacher Dashboard
+  </div>
+  <ul>
+    <li id="autoAttendance"><span>📷</span> Automatic Scan</li>
+    <li id="studentListBtn"><span>👨‍🎓</span> All Student</li>
+    <li><span>👥</span> Classes</li>
+    <li><span>📈</span> Reports</li>
+    <li><span>💬</span> Attendance</li>
+    <li><span>⚙️</span> Settings</li>
+    <li><span>🛟</span> Help Center</li>
+  </ul>
+</div>
+<div class="main">
+  <div class="card-row">
+    <div class="card class-list">
+      <h2>My Class</h2>
+      <ul>
+        <li><span class="avatar" style="background-image:url('https://randomuser.me/api/portraits/men/1.jpg');"></span>Alan Ward <span class="percent">95%</span></li>
+        <li><span class="avatar" style="background-image:url('https://randomuser.me/api/portraits/men/2.jpg');"></span>Cameron Pope <span class="percent">67%</span></li>
+        <li><span class="avatar" style="background-image:url('https://randomuser.me/api/portraits/men/3.jpg');"></span>Carl Griffin <span class="percent">60%</span></li>
+        <li><span class="avatar" style="background-image:url('https://randomuser.me/api/portraits/women/1.jpg');"></span>Kate Townsend <span class="percent">52%</span></li>
+        <li><span class="avatar" style="background-image:url('https://randomuser.me/api/portraits/men/4.jpg');"></span>Ronald Mullins <span class="percent">48%</span></li>
+      </ul>
+    </div>
+    <div class="card attendance">
+      <h2>Attendance</h2>
+      <canvas id="attendanceChart" width="440" height="220"></canvas>
+    </div>
+  </div>
+  <div class="card-row">
+    <div class="card avg-score">
+      <h2>Students Average Score</h2>
+      <div class="score-bars">
+        <div>Astronomy <span class="bar negative" style="height:90px;">27</span> <span class="bar positive" style="height:22px;">6</span></div>
+        <div>Maths <span class="bar negative" style="height:72px;">21</span> <span class="bar positive" style="height:40px;">9</span></div>
+        <div>Nature <span class="bar negative" style="height:40px;">13</span> <span class="bar positive" style="height:60px;">17</span></div>
+        <div>Science <span class="bar negative" style="height:24px;">10</span> <span class="bar positive" style="height:66px;">21</span></div>
+        <div>Psychology <span class="bar negative" style="height:40px;">14</span> <span class="bar positive" style="height:65px;">19</span></div>
+      </div>
+    </div>
+    <div class="card most-changed">
+      <h2>Most Changed</h2>
+      <ul>
+        <li>Biology: 87% &rarr; 21% <span class="down">60%↓</span></li>
+        <li>Science: 34% &rarr; 90% <span class="up">56%↑</span></li>
+        <li>Mathematics: 25% &rarr; 70% <span class="up">45%↑</span></li>
+        <li>Philosophy: 64% &rarr; 31% <span class="down">33%↓</span></li>
+        <li>Physics: 45% &rarr; 25% <span class="down">20%↓</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+<!-- Student modal -->
+<div id="studentOverlay">
+  <div id="studentModal">
+    <button onclick="startAutoScan()">📷 Automatic Scan</button>
+    <h2>Student Attendance Marking</h2>
+    <table id="studentTable">
+      <thead>
+        <tr><th>Photo</th><th>Name</th><th>Present</th><th>Absent</th></tr>
+      </thead>
+      <tbody id="studentTbody"></tbody>
+    </table>
+  </div>
+</div>
+<!-- Camera overlay -->
+<div id="cameraContainer" style="display:none; flex-direction: column; justify-content: center; align-items: center;">
+  <div id="cameraOverlay">
+    <video id="video" autoplay muted playsinline></video>
+    <div id="controls" style="margin-top:10px; width: 100%; display: flex; justify-content: space-between; align-items: center; color: #fff;">
+      <button id="toggleCameraBtn">Switch Camera</button>
+      <button id="closeCameraBtn">Close Camera</button>
+    </div>
+  </div>
+  <div id="scanStatus" style="color:#fff; margin-top:10px;">Face scan will start after camera is opened.</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+  // Attendance graph Chart.js
+  var ctx = document.getElementById('attendanceChart').getContext('2d');
+  var attendanceChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+          labels: ['Sat','Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+          datasets: [
+              {
+                  label: '11A',
+                  data: [80, 65, 60, 85, 92, 90, 60, 75],
+                  borderColor: '#f44e70',
+                  backgroundColor: 'rgba(244,78,112,0.08)',
+                  fill: true,
+                  tension: 0.4
+              },
+              {
+                  label: 'Others',
+                  data: [70, 60, 68, 95, 88, 80, 85, 68],
+                  borderColor: '#5284ff',
+                  backgroundColor: 'rgba(82,132,255,0.08)',
+                  fill: true,
+                  tension: 0.4
+              }
+          ]
+      },
+      options: {
+          responsive: false,
+          plugins: { legend: { display: false } },
+          scales: { 
+            x: { grid: { display: false } }, 
+            y: { grid: { display: false }, beginAtZero: true, max: 100 }
+          }
+      }
+  });
+  // Sidebar toggle
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebar = document.querySelector('.sidebar');
+  const mainContent = document.querySelector('.main');
+  menuToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('hide');
+    mainContent.classList.toggle('full');
+  });
+  // Face detection camera control
+  const autoAttendance = document.getElementById('autoAttendance');
+  const cameraContainer = document.getElementById('cameraContainer');
+  const video = document.getElementById('video');
+  const toggleCameraBtn = document.getElementById('toggleCameraBtn');
+  const closeCameraBtn = document.getElementById('closeCameraBtn');
+  const scanStatus = document.getElementById('scanStatus');
+  let stream = null;
+  let useFrontCamera = true;
+  async function loadModels() {
+    scanStatus.innerText = 'Loading face detection models...';
+    await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/models');
+  }
+  async function startStream() {
+    if (stream) { stream.getTracks().forEach(track => track.stop()); }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: useFrontCamera ? 'user' : 'environment' }
+      });
+      video.srcObject = stream;
+      await video.play();
+      scanStatus.innerText = 'Camera started. Detecting faces...';
+      detectFaces();
+    } catch (error) {
+      scanStatus.innerText = 'Cannot access camera.';
+      console.error(error);
+    }
+  }
+  async function detectFaces() {
+    const options = new faceapi.TinyFaceDetectorOptions();
+    let count = 0;
+    const maxCount = 60;
+    while (count < maxCount && cameraContainer.style.display === 'flex') {
+      const detections = await faceapi.detectAllFaces(video, options);
+      if (detections.length > 0) {
+        count++;
+        scanStatus.innerText = `Faces detected: ${count}`;
+      }
+      await new Promise(r => setTimeout(r, 300));
+    }
+    if (count >= maxCount) {
+      alert('Face scan complete for 60 students.');
+      stopStream();
+    }
+  }
+  function stopStream() {
+    if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null;}
+    cameraContainer.style.display = 'none';
+    scanStatus.innerText = 'Face scan will start after camera is opened.';
+  }
+  autoAttendance.addEventListener('click', async () => {
+    cameraContainer.style.display = 'flex';
+    await loadModels();
+    await startStream();
+  });
+  toggleCameraBtn.addEventListener('click', async () => { useFrontCamera = !useFrontCamera; await startStream(); });
+  closeCameraBtn.addEventListener('click', () => { stopStream(); });
+
+  // Student Manual Attendance Modal
+  const studentListBtn = document.getElementById('studentListBtn');
+  const studentOverlay = document.getElementById('studentOverlay');
+  const closeStudentBtn = document.getElementById('closeStudentBtn');
+  const studentTbody = document.getElementById('studentTbody');
+  const studentNames = [
+    "Alan Ward","Cameron Pope","Carl Griffin","Kate Townsend","Ronald Mullins",
+    ...Array.from({length:55},(_,i)=>'Student '+(i+6))
+  ];
+  const studentPhotos = [
+    "https://randomuser.me/api/portraits/men/1.jpg",
+    "https://randomuser.me/api/portraits/men/2.jpg",
+    "https://randomuser.me/api/portraits/men/3.jpg",
+    "https://randomuser.me/api/portraits/women/1.jpg",
+    "https://randomuser.me/api/portraits/men/4.jpg"
+  ];
+  // Render student table for modal (real data from backend)
+  studentListBtn.addEventListener('click', async () => {
+    studentTbody.innerHTML = '';
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('http://127.0.0.1:8000/students/', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (!res.ok) throw new Error('Failed to fetch');
+      const students = await res.json();
+      students.forEach((s, i) => {
+        const img = (s.face_images && s.face_images[0]) ? s.face_images[0] : `https://placehold.co/80x80`;
+        const name = s.name || s.user_id;
+        studentTbody.innerHTML += `<tr>
+          <td><img src="${img}" class="student-photo"></td>
+          <td>${name}</td>
+          <td><input type="radio" name="att${i}" class="attend-radio" data-user="${s.user_id}" value="present"></td>
+          <td><input type="radio" name="att${i}" class="attend-radio" data-user="${s.user_id}" value="absent"></td>
+        </tr>`;
+      });
+      // attach manual attendance handler
+      document.querySelectorAll('.attend-radio').forEach(r => {
+        r.addEventListener('change', async (ev) => {
+          const user = ev.target.getAttribute('data-user');
+          const status = ev.target.value;
+          await fetch('http://127.0.0.1:8000/attendance/manual', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ student_user_id: user, status })
+          });
+        });
+      });
+      studentOverlay.style.display = 'flex';
+    } catch (err) { alert('Could not load students: ' + err.message); }
+  });
+  closeStudentBtn.addEventListener('click', ()=>{studentOverlay.style.display='none';});
+</script>
+<script>
+async function sendAutoAttendance(faceEncoding){
+  await fetch("http://localhost:8000/attendance/auto", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify({ face_encoding: faceEncoding })
+  });
+  alert("Attendance marked");
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<script>
+
+async function loadModels() {
+  const url = "https://justadudewhohacks.github.io/face-api.js/models/";
+  await faceapi.nets.tinyFaceDetector.loadFromUri(url);
+  await faceapi.nets.faceLandmark68Net.loadFromUri(url);
+  await faceapi.nets.faceRecognitionNet.loadFromUri(url);
+}
+
+async function startAutoScan() {
+  await loadModels();
+
+  video = document.createElement("video");
+  document.body.appendChild(video);
+
+  stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+  video.play();
+
+  setInterval(async () => {
+    const result = await faceapi
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (result) {
+      sendAttendance(Array.from(result.descriptor));
+    }
+  }, 3000);
+}
+
+async function sendAttendance(encoding) {
+  const token = localStorage.getItem('token');
+  const res = await fetch("http://127.0.0.1:8000/attendance/auto", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({ face_encoding: encoding })
+  });
+  const data = await res.json();
+  if (data.ok || data.matched) {
+    console.log('Attendance result', data);
+  } else {
+    console.warn('No match or error', data);
+  }
+}
+</script>
+</body>
+</html>
