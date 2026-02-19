@@ -295,7 +295,7 @@
 </script>
 <script>
 async function sendAutoAttendance(faceEncoding){
-  await fetch("http://localhost:8000/attendance/auto", {
+  await fetch("http://127.0.0.1:8000/attendance/auto", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -93,16 +93,32 @@
   </script>
   <script>
 const studentId = localStorage.getItem("user_id");
+const token = localStorage.getItem("token");
 
-fetch(`http://127.0.0.1:8000/attendance/${studentId}`)
-  .then(res => res.json())
-  .then(data => {
-    let html = "";
-    data.forEach(r => {
-      html += `<p>${r.date} : ${r.status}</p>`;
+if(studentId && token) {
+  fetch(`http://127.0.0.1:8000/attendance/student/${studentId}`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+    .then(res => {
+      if(!res.ok) throw new Error('Failed to fetch attendance');
+      return res.json();
+    })
+    .then(data => {
+      let html = "";
+      if(data.attendance && data.attendance.length > 0) {
+        data.attendance.forEach(r => {
+          html += `<p>${r.date} : ${r.status}</p>`;
+        });
+      } else {
+        html = "<p>No attendance records found</p>";
+      }
+      document.getElementById("attendance-result").innerHTML = html;
+    })
+    .catch(err => {
+      console.error('Error:', err);
+      document.getElementById("attendance-result").innerHTML = '<p style="color: red;">Error loading attendance data</p>';
     });
-    document.getElementById("attendance-result").innerHTML = html;
-  });
+}
 </script>
 
 
